@@ -222,10 +222,10 @@ html,body{overflow-x:clip}.home{overflow-x:clip}
 .rail.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));overflow:visible}.rail.grid .sample{max-width:none;flex:none}
 .card .no a{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border:1px solid currentColor;border-radius:99px}
 @media(max-width:720px){#menuBtn{display:inline-flex}.page{padding-left:16px;padding-right:16px}.section,.hero,.contact,footer{padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}}
-@media(max-width:900px),(max-height:680px){.card{position:relative;top:auto;min-height:0}.card .l{gap:26px}}
+@media(max-width:900px),(max-height:680px){.card{top:var(--stack-top,84px);min-height:0}.card .l{gap:26px}}
 @media(max-height:520px){.hero,.contact,.page{min-height:0}.hero{padding-top:96px}}
 @media(min-width:1700px){.section,.hero,.page,.contact{padding-left:calc((100% - 1560px)/2);padding-right:calc((100% - 1560px)/2)}}
-@media(hover:none){.hov{display:none}.tch{display:inline}.sample:hover,.tier:hover{transform:none}.sample .vis:after{animation:arrowPop 4.5s ease-in-out infinite;animation-delay:calc(var(--n,0)*.5s)}.sample{animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) backwards,autoLift 6s ease-in-out infinite;animation-delay:calc(var(--n,0)*60ms),calc(var(--n,0)*.4s)}.card.on h3 .ch{animation:chWave 3.6s ease-in-out infinite;animation-delay:calc(var(--i)*90ms)}.card.on .price::before{animation:priceSweep 5s ease-in-out infinite;animation-delay:calc(var(--r,0)*.9s)}}
+@media(hover:none){.hov{display:none}.tch{display:inline}}
 @keyframes arrowPop{0%,55%,100%{transform:scale(0)}65%,90%{transform:scale(1)}}@keyframes autoLift{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-7px) rotate(-.6deg)}}@keyframes chWave{0%,60%,100%{transform:none}30%{transform:translateY(-9%) rotate(-3deg)}}@keyframes priceSweep{0%,70%,100%{transform:scaleX(0);opacity:0}30%,45%{transform:scaleX(1);opacity:.1}}
 @media(pointer:coarse){.navbtn,.filter,.chk{min-height:40px;display:inline-flex;align-items:center}.fld input,.fld textarea,.sbox input,.sel{font-size:16px}.cbtn{min-height:48px}}
 @media(pointer:coarse) and (min-width:721px){.nav a:not(.logo){min-height:40px;display:inline-flex;align-items:center;padding:0 12px}}
@@ -370,16 +370,12 @@ details p,.dul li{line-height:1.6}
 
 .tiers{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
 /* Input-equivalent motion; layout and original artwork remain unchanged. */
-@media(hover:none){
- .sample:not(.pv){animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) backwards,autoLift 6s ease-in-out infinite;animation-delay:calc(var(--n,0)*60ms),calc(var(--n,0)*.4s)}
- .sample.motion-touch:not(.pv){animation:none;transform:translateY(-10px) rotate(-1deg);border-color:var(--lime)}
- .sample.motion-touch .vis:after{animation:none;transform:scale(1)}
- .tier.motion-touch{transform:translateY(-4px);border-color:var(--lime)}
-}
+.sample.motion-touch:not(.pv){transform:translateY(-10px) rotate(-1deg);border-color:var(--lime)}
+.sample.motion-touch .vis:after{transform:scale(1)}
+.tier.motion-touch{transform:translateY(-4px);border-color:var(--lime)}
+.card.motion-touch h3 .ch{transform:translateY(-9%) rotate(-3deg)}
 .price.motion-touch{padding-left:12px}.price.motion-touch::before{transform:scaleX(1);opacity:.1}
 .contact h2 span.motion-touch{transform:translateX(3vw) skewX(-8deg);color:var(--lime)}
-#gl.liquid-fallback{background:radial-gradient(ellipse at 20% 30%,var(--blue),transparent 65%),radial-gradient(ellipse at 80% 60%,var(--red),transparent 65%),radial-gradient(ellipse at 50% 80%,var(--violet),var(--bg) 75%);background-size:160% 160%;animation:liquidDrift 16s ease-in-out infinite alternate}
-@keyframes liquidDrift{from{background-position:0% 20%,100% 80%,50% 100%}to{background-position:100% 80%,0% 20%,80% 0%}}
 @media(prefers-reduced-motion:reduce){
  html{scroll-behavior:auto}
  *,*::before,*::after{animation:none!important;transition:none!important}
@@ -471,7 +467,9 @@ function moveCta(e){if(motionPreference.matches)return;ctaAct=true;const r=c.get
 function releaseCta(){ctaAct=false;c.style.transform=''}
 c.addEventListener('pointermove',moveCta,{passive:true});c.addEventListener('pointerdown',moveCta,{passive:true});
 ['pointerleave','pointerup','pointercancel','blur'].forEach(type=>c.addEventListener(type,releaseCta));
-document.addEventListener('pointerdown',e=>{const el=e.target.closest('.sample,.tier,.price,.contact h2 span');if(el&&e.pointerType!=='mouse')el.classList.add('motion-touch')},{passive:true});
+function touchHover(e){if(e.pointerType==='mouse')return;releaseTouch();let el=e.target.closest('.sample,.tier,.price,.contact h2 span,.card');while(el){el.classList.add('motion-touch');el=el.parentElement?.closest('.sample,.tier,.price,.contact h2 span,.card')}}
+document.addEventListener('pointerdown',touchHover,{passive:true});
+document.addEventListener('pointermove',touchHover,{passive:true});
 function releaseTouch(){document.querySelectorAll('.motion-touch').forEach(el=>el.classList.remove('motion-touch'))}
 ['pointerup','pointercancel'].forEach(type=>addEventListener(type,releaseTouch,{passive:true}));
 addEventListener('blur',releaseTouch);
@@ -499,16 +497,40 @@ const cv=document.getElementById('gl');let gl;
 try{gl=cv.getContext('webgl')}catch(e){}
 function fallbackBackground(){
   cv.hidden=true;
-  const bg=document.createElement('div');bg.id='gl';bg.className='liquid-fallback';bg.setAttribute('aria-hidden','true');cv.after(bg);
+  const bg=document.createElement('canvas');bg.id='gl';bg.className='liquid-fallback';bg.setAttribute('aria-hidden','true');cv.after(bg);
+  const ctx=bg.getContext('2d');if(!ctx)return;bg.width=160;bg.height=100;
+  const image=ctx.createImageData(bg.width,bg.height);
+  const fract=v=>v-Math.floor(v),mix=(a,b,s)=>a+(b-a)*s;
+  function smooth(a,b,v){const s=Math.max(0,Math.min(1,(v-a)/(b-a)));return s*s*(3-2*s)}
+  function hash(x,y){return fract(Math.sin(x*127.1+y*311.7)*43758.5453)}
+  function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=fract(x),fy=fract(y),sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);return mix(mix(hash(ix,iy),hash(ix+1,iy),sx),mix(hash(ix,iy+1),hash(ix+1,iy+1),sx),sy)}
+  function fbm(x,y){let v=0,a=.5;for(let i=0;i<4;i++){v+=a*noise(x,y);x*=2;y*=2;a*=.5}return v}
+  let last=-Infinity,drawn=false;
+  function render(ms){
+    if(ms-last<50||(motionPreference.matches&&drawn)){requestAnimationFrame(render);return}last=ms;
+    mx+=(tx-mx)*.06;my+=(ty-my)*.06;const t=motionPreference.matches?0:ms/1000;
+    for(let y=0;y<bg.height;y++)for(let x=0;x<bg.width;x++){
+      let px=(x+.5)/bg.width*4,py=(1-(y+.5)/bg.height)*2.5;
+      const dx=px-mx*4,dy=py-my*2.5,d=Math.hypot(dx,dy),len=Math.hypot(dx+.001,dy+.001),warp=.5*Math.exp(-d*1.6);
+      px+=(dx+.001)/len*warp;py+=(dy+.001)/len*warp;
+      const q=fbm(px+t*.08,py+t*.08),w=fbm(px+3*q+t*.12,py+3*q-t*.09),red=smooth(.35,.85,w),blue=smooth(.35,.9,q)*.85,violet=smooth(.5,.2,w)*.5,lime=smooth(.7,1,w*q*2.2),shine=Math.exp(-d*2)*.35;
+      const dark=[.035,.035,.06],rc=[.94,.24,.18],bc=[.19,.34,1],vc=[.45,.34,.91],lc=[.85,.95,.29],pink=[.94,.46,.66],offset=(y*bg.width+x)*4;
+      for(let c=0;c<3;c++)image.data[offset+c]=Math.round((mix(mix(mix(mix(dark[c],rc[c],red),bc[c],blue),vc[c],violet),lc[c],lime)+pink[c]*shine)*.85*255);
+      image.data[offset+3]=255;
+    }
+    ctx.putImageData(image,0,0);drawn=true;requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
 }
 if(!gl){fallbackBackground();return}
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();if(!cv.hidden)fallbackBackground()});
 const vs='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-const fs=`precision mediump float;uniform vec2 r,m;uniform float t;
+const precision=gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER,gl.HIGH_FLOAT);
+const fs=`precision ${precision&&precision.precision>0?'highp':'mediump'} float;uniform vec2 r,m;uniform float t;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
 float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<4;i++){v+=a*n(p);p*=2.;a*=.5;}return v;}
-void main(){vec2 u=gl_FragCoord.xy/r;float k=r.x/r.y;vec2 p=u*vec2(k,1.)*2.5,mm=m*vec2(k,1.)*2.5;float d=distance(p,mm);
+void main(){vec2 u=gl_FragCoord.xy/r;float k=1.6;vec2 p=u*vec2(k,1.)*2.5,mm=m*vec2(k,1.)*2.5;float d=distance(p,mm);
 p+=normalize(p-mm+.001)*.5*exp(-d*1.6);
 float q=fbm(p+t*.08),w=fbm(p+3.*q+vec2(t*.12,-t*.09));
 vec3 c=mix(vec3(.035,.035,.06),vec3(.94,.24,.18),smoothstep(.35,.85,w));
@@ -522,7 +544,7 @@ if(!gl.getProgramParameter(pr,gl.LINK_STATUS)){fallbackBackground();return}gl.us
 const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
 const a=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);
 const U=n=>gl.getUniformLocation(pr,n),ur=U('r'),um=U('m'),ut=U('t');
-function rs(){cv.width=innerWidth*.5;cv.height=innerHeight*.5;gl.viewport(0,0,cv.width,cv.height)}rs();addEventListener('resize',rs);
+function rs(){cv.width=640;cv.height=400;gl.viewport(0,0,cv.width,cv.height);delete cv.dataset.drawn}rs();
 function f(ms){if(cv.hidden)return;if(!motionPreference.matches||!cv.dataset.drawn){mx+=(tx-mx)*.06;my+=(ty-my)*.06;gl.uniform2f(ur,cv.width,cv.height);gl.uniform2f(um,mx,my);gl.uniform1f(ut,motionPreference.matches?0:ms/1000);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);cv.dataset.drawn='true'}requestAnimationFrame(f)}
 requestAnimationFrame(f);
 })();
@@ -1895,6 +1917,11 @@ addEventListener('resize',()=>{if(innerWidth>720)close()});})();
 (function(){
 const reduced=motionPreference.matches;
 const cards=[...document.querySelectorAll('.card[data-go]')];
+function sizeStack(){cards.forEach((card,i)=>card.style.setProperty('--stack-top',Math.min(84+i*22,innerHeight-card.offsetHeight-24)+'px'))}
+addEventListener('resize',sizeStack,{passive:true});
+if(window.visualViewport)visualViewport.addEventListener('resize',sizeStack,{passive:true});
+if('ResizeObserver' in window){const sizes=new ResizeObserver(sizeStack);cards.forEach(card=>sizes.observe(card))}
+requestAnimationFrame(sizeStack);
 const ART={
  web:'<div class="ah"><i></i><i></i><i></i><span>chiquy.studio</span></div><div class="ab"><div class="ln l1"></div><div class="ln l2"></div><div class="ln l3"></div><span class="cur"></span></div>',
  video:'<div class="ah"><i></i><i></i><i></i><span>cam-01.mov</span></div><div class="ab"><s class="cn c1"></s><s class="cn c2"></s><s class="cn c3"></s><s class="cn c4"></s><span class="rec"><b></b>REC</span><span class="tc">00:00:00</span><span class="pl"></span><span class="sc"><i></i></span></div>',

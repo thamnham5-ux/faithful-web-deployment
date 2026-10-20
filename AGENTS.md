@@ -13,4 +13,4 @@
 - Keep the supplied standalone HTML site intact; apply only targeted patches because it is the authoritative design and content.
 - Keep branding synchronized between the standalone HTML head and the TanStack entry head because the entry redirects visitors to the HTML site.
 - Store every web image (current and future) as a real file under public/images and reference it by /images/... path, never CDN asset pointers, because the site is also deployed from GitHub to Netlify where Lovable CDN URLs do not resolve.
-- Keep standalone motion input-neutral with Pointer Events, viewport-entry reveals and an animated CSS fallback when WebGL is unavailable; respect the visitor's reduced-motion setting rather than gating effects by device type.
+- Keep standalone motion input-neutral with Pointer Events, viewport-entry reveals and viewport-aware sticky stacking; render the liquid background in a fixed logical frame so device aspect ratio does not change its composition, and respect reduced-motion preferences rather than adding touch-only animation loops.
