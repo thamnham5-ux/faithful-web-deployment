@@ -369,6 +369,25 @@ details p,.dul li{line-height:1.6}
 .facts{margin:6px 0 18px}.facts .hr b{font-size:clamp(20px,2vw,26px)}
 
 .tiers{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+/* Input-equivalent motion; layout and original artwork remain unchanged. */
+@media(hover:none){
+ .sample:not(.pv){animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) backwards,autoLift 6s ease-in-out infinite;animation-delay:calc(var(--n,0)*60ms),calc(var(--n,0)*.4s)}
+ .sample.motion-touch:not(.pv){animation:none;transform:translateY(-10px) rotate(-1deg);border-color:var(--lime)}
+ .sample.motion-touch .vis:after{animation:none;transform:scale(1)}
+ .tier.motion-touch{transform:translateY(-4px);border-color:var(--lime)}
+}
+.price.motion-touch{padding-left:12px}.price.motion-touch::before{transform:scaleX(1);opacity:.1}
+.contact h2 span.motion-touch{transform:translateX(3vw) skewX(-8deg);color:var(--lime)}
+#gl.liquid-fallback{background:radial-gradient(ellipse at 20% 30%,var(--blue),transparent 65%),radial-gradient(ellipse at 80% 60%,var(--red),transparent 65%),radial-gradient(ellipse at 50% 80%,var(--violet),var(--bg) 75%);background-size:160% 160%;animation:liquidDrift 16s ease-in-out infinite alternate}
+@keyframes liquidDrift{from{background-position:0% 20%,100% 80%,50% 100%}to{background-position:100% 80%,0% 20%,80% 0%}}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ *,*::before,*::after{animation:none!important;transition:none!important}
+ .js .rv,.js .card:not(.in){opacity:1;transform:none}
+ .glow{display:none}
+ .card,.sample,.tier,.contact h2 span{transform:none!important}
+ .art-web .ln{width:var(--w,80%)}
+}
 </style>
 </head>
 <body>
