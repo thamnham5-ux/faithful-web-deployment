@@ -549,7 +549,8 @@ const SEED=[
 
 /* ---------- data layer (localStorage; swap for a real backend later) ---------- */
 /* ---------- data layer (Lovable Cloud) ---------- */
-const SB=window.supabase.createClient('https://dyktdzbfsubkussnavfa.supabase.co','sb_publishable_0IJDhGCZBn0-wPvonpN6Jw_biO9rvW5');
+const authMem={},authStore={getItem:k=>{try{const v=localStorage.getItem(k);if(v!=null)return v}catch(e){}return k in authMem?authMem[k]:null},setItem:(k,v)=>{authMem[k]=v;try{localStorage.setItem(k,v)}catch(e){}},removeItem:k=>{delete authMem[k];try{localStorage.removeItem(k)}catch(e){}}};
+const SB=window.supabase.createClient('https://dyktdzbfsubkussnavfa.supabase.co','sb_publishable_0IJDhGCZBn0-wPvonpN6Jw_biO9rvW5',{auth:{storage:authStore,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let demos=SEED.map(x=>({...x,tags:[...x.tags],support:[...x.support]})),allOrders=[],users={},session=null,uid=null,isAdmin=false,synced=false;
 function reload(){}
 const toOrder=r=>({id:r.id,at:new Date(r.created_at).getTime(),due:new Date(r.due_at).getTime(),status:r.status,name:r.name,account:r.account,fb:r.fb,items:r.items||[],total:Number(r.total)});
@@ -590,6 +591,9 @@ addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
 /* ---------- header + card buttons ---------- */
 function refresh(){
   $('#cartN').textContent=cart.length;
+  let ab=document.getElementById('admBtn');
+  if(isAdmin&&!ab){ab=h('a',{href:'#/admin',id:'admBtn',class:'navbtn hot',text:'QUẢN TRỊ'});$('#acctBtn').after(ab)}
+  if(!isAdmin&&ab)ab.remove();
   $('#acctBtn').textContent=session?(me().name||session).split(' ').slice(-1)[0].slice(0,10).toUpperCase():'ĐĂNG NHẬP';
   $$('.sample[data-code]').forEach(sm=>{const b=$('.addbtn',sm),d=demoOf(sm.dataset.code);if(!b||!d||d.status==='slotout')return;const inC=cart.some(i=>i.code===d.code);b.classList.toggle('in',inC);b.textContent=inC?'ĐÃ TRONG GIỎ ✓':'+ ĐẶT DEMO'});
 }
