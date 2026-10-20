@@ -12,4 +12,4 @@
 ## Site architecture
 - Keep the supplied standalone HTML site intact; apply only targeted patches because it is the authoritative design and content.
 - Keep branding synchronized between the standalone HTML head and the TanStack entry head because the entry redirects visitors to the HTML site.
-- Keep generated logo concepts in source assets, use CDN pointers for processed web images, and a small public favicon because the standalone HTML cannot import bundled images.
+- Store every web image (current and future) as a real file under public/images and reference it by /images/... path, never CDN asset pointers, because the site is also deployed from GitHub to Netlify where Lovable CDN URLs do not resolve.
