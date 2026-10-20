@@ -557,7 +557,7 @@ async function sync(){
   try{
     const {data:{session:ss}}=await SB.auth.getSession();
     session=ss?ss.user.email.toLowerCase():null;uid=ss?ss.user.id:null;isAdmin=false;users={};allOrders=[];
-    const dr=await SB.from('demos').select('*').order('sort',{ascending:false}).order('created_at',{ascending:false});
+    const dr=await SB.from('demos').select('*').order('sort',{ascending:true}).order('created_at',{ascending:false});
     if(!dr.error&&dr.data)demos=dr.data.map(d=>({code:d.code,name:d.name,service:d.service,tags:d.tags||[],visual:d.visual,url:d.url||'',support:d.support||[],status:d.status}));
     if(uid){
       const [pr,rr,or]=await Promise.all([SB.from('profiles').select('*'),SB.rpc('has_role',{_user_id:uid,_role:'admin'}),SB.from('orders').select('*').order('created_at',{ascending:false})]);
@@ -1786,7 +1786,7 @@ function adminDemos(){
       const L=SVC[f.svc.value].letter;let code=f.code.value.trim().toUpperCase();
       if(!code){const max=Math.max(0,...demos.filter(d=>d.code.startsWith('CQ-'+L+'-')).map(d=>parseInt(d.code.split('-')[2])||0));code='CQ-'+L+'-'+String(max+1).padStart(3,'0')}
       if(demos.some(d=>d.code===code)){err.textContent='Mã '+code+' đã tồn tại.';return}
-      target={code,name,service:f.svc.value,tags,visual:+f.vis.value,status:f.st.value,url,support};extra={sort:Math.floor(Date.now()/1000)};
+      target={code,name,service:f.svc.value,tags,visual:+f.vis.value,status:f.st.value,url,support};extra={sort:-Math.floor(Date.now()/1000)};
     }
     if(!await saveDemo(target,extra))return;await sync();toast(e?'Đã lưu thay đổi':'Đã đăng demo mới');editing=null;pageAdmin()});
   w.append(fm,h('div',{class:'mono count',text:'DANH SÁCH DEMO'}));
