@@ -376,8 +376,6 @@ details p,.dul li{line-height:1.6}
 .card.motion-touch h3 .ch{transform:translateY(-9%) rotate(-3deg)}
 .price.motion-touch{padding-left:12px}.price.motion-touch::before{transform:scaleX(1);opacity:.1}
 .contact h2 span.motion-touch{transform:translateX(3vw) skewX(-8deg);color:var(--lime)}
-#gl.liquid-fallback{background:radial-gradient(ellipse at 20% 30%,var(--blue),transparent 65%),radial-gradient(ellipse at 80% 60%,var(--red),transparent 65%),radial-gradient(ellipse at 50% 80%,var(--violet),var(--bg) 75%);background-size:160% 160%;animation:liquidDrift 16s ease-in-out infinite alternate}
-@keyframes liquidDrift{from{background-position:0% 20%,100% 80%,50% 100%}to{background-position:100% 80%,0% 20%,80% 0%}}
 @media(prefers-reduced-motion:reduce){
  html{scroll-behavior:auto}
  *,*::before,*::after{animation:none!important;transition:none!important}
@@ -499,7 +497,30 @@ const cv=document.getElementById('gl');let gl;
 try{gl=cv.getContext('webgl')}catch(e){}
 function fallbackBackground(){
   cv.hidden=true;
-  const bg=document.createElement('div');bg.id='gl';bg.className='liquid-fallback';bg.setAttribute('aria-hidden','true');cv.after(bg);
+  const bg=document.createElement('canvas');bg.id='gl';bg.className='liquid-fallback';bg.setAttribute('aria-hidden','true');cv.after(bg);
+  const ctx=bg.getContext('2d');if(!ctx)return;bg.width=160;bg.height=100;
+  const image=ctx.createImageData(bg.width,bg.height);
+  const fract=v=>v-Math.floor(v),mix=(a,b,s)=>a+(b-a)*s;
+  function smooth(a,b,v){const s=Math.max(0,Math.min(1,(v-a)/(b-a)));return s*s*(3-2*s)}
+  function hash(x,y){return fract(Math.sin(x*127.1+y*311.7)*43758.5453)}
+  function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y),fx=fract(x),fy=fract(y),sx=fx*fx*(3-2*fx),sy=fy*fy*(3-2*fy);return mix(mix(hash(ix,iy),hash(ix+1,iy),sx),mix(hash(ix,iy+1),hash(ix+1,iy+1),sx),sy)}
+  function fbm(x,y){let v=0,a=.5;for(let i=0;i<4;i++){v+=a*noise(x,y);x*=2;y*=2;a*=.5}return v}
+  let last=-Infinity,drawn=false;
+  function render(ms){
+    if(ms-last<50||(motionPreference.matches&&drawn)){requestAnimationFrame(render);return}last=ms;
+    mx+=(tx-mx)*.06;my+=(ty-my)*.06;const t=motionPreference.matches?0:ms/1000;
+    for(let y=0;y<bg.height;y++)for(let x=0;x<bg.width;x++){
+      let px=(x+.5)/bg.width*4,py=(1-(y+.5)/bg.height)*2.5;
+      const dx=px-mx*4,dy=py-my*2.5,d=Math.hypot(dx,dy),len=Math.hypot(dx+.001,dy+.001),warp=.5*Math.exp(-d*1.6);
+      px+=(dx+.001)/len*warp;py+=(dy+.001)/len*warp;
+      const q=fbm(px+t*.08,py+t*.08),w=fbm(px+3*q+t*.12,py+3*q-t*.09),red=smooth(.35,.85,w),blue=smooth(.35,.9,q)*.85,violet=smooth(.5,.2,w)*.5,lime=smooth(.7,1,w*q*2.2),shine=Math.exp(-d*2)*.35;
+      const dark=[.035,.035,.06],rc=[.94,.24,.18],bc=[.19,.34,1],vc=[.45,.34,.91],lc=[.85,.95,.29],pink=[.94,.46,.66],offset=(y*bg.width+x)*4;
+      for(let c=0;c<3;c++)image.data[offset+c]=Math.round((mix(mix(mix(mix(dark[c],rc[c],red),bc[c],blue),vc[c],violet),lc[c],lime)+pink[c]*shine)*.85*255);
+      image.data[offset+3]=255;
+    }
+    ctx.putImageData(image,0,0);drawn=true;requestAnimationFrame(render);
+  }
+  requestAnimationFrame(render);
 }
 if(!gl){fallbackBackground();return}
 cv.addEventListener('webglcontextlost',e=>{e.preventDefault();if(!cv.hidden)fallbackBackground()});
