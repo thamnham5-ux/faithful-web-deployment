@@ -1,5 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import previewAsset from "@/assets/chiquy-preview.jpg.asset.json";
+
+const previewImage = `https://id-preview--bc15b101-9a74-46d8-a2fc-41b574e9d5da.lovable.app${previewAsset.url}`;
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -9,7 +12,11 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "CHÍ QUY® — Creative Department" },
       { property: "og:description", content: "Creative department làm website, video và trải nghiệm sự kiện. Chọn demo, đặt mua và phát triển theo ý bạn." },
       { property: "og:type", content: "website" },
+      { property: "og:image", content: previewImage },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: previewImage },
     ],
   }),
   component: Index,
