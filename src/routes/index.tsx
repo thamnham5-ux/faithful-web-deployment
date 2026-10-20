@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
-import previewAsset from "@/assets/chiquy-preview.jpg.asset.json";
 
-const previewImage = `https://id-preview--bc15b101-9a74-46d8-a2fc-41b574e9d5da.lovable.app${previewAsset.url}`;
+const previewImage = "/images/chiquy-preview.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
