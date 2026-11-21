@@ -57,38 +57,47 @@ export type Database = {
         Row: {
           account: string
           created_at: string
+          discount_amount: number | null
           due_at: string
           fb: string
           id: string
           items: Json
           name: string
           status: string
+          subtotal: number | null
           total: number
           user_id: string
+          voucher_code: string | null
         }
         Insert: {
           account: string
           created_at?: string
+          discount_amount?: number | null
           due_at?: string
           fb?: string
           id: string
           items?: Json
           name?: string
           status?: string
+          subtotal?: number | null
           total?: number
           user_id?: string
+          voucher_code?: string | null
         }
         Update: {
           account?: string
           created_at?: string
+          discount_amount?: number | null
           due_at?: string
           fb?: string
           id?: string
           items?: Json
           name?: string
           status?: string
+          subtotal?: number | null
           total?: number
           user_id?: string
+          voucher_code?: string | null
         }
         Relationships: []
       }
@@ -133,6 +142,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vouchers: {
+        Row: {
+          code: string
+          created_at: string
+          discount_percent: number
+          id: string
+          used_at: string | null
+          used_order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_percent?: number
+          id?: string
+          used_at?: string | null
+          used_order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_percent?: number
+          id?: string
+          used_at?: string | null
+          used_order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

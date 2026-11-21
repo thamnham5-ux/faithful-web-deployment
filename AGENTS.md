@@ -14,3 +14,4 @@
 - Keep branding synchronized between the standalone HTML head and the TanStack entry head because the entry redirects visitors to the HTML site.
 - Store every web image (current and future) as a real file under public/images and reference it by /images/... path, never CDN asset pointers, because the site is also deployed from GitHub to Netlify where Lovable CDN URLs do not resolve.
 - Keep standalone motion input-neutral with Pointer Events, viewport-entry reveals and viewport-aware sticky stacking; render the liquid background in a fixed logical frame so device aspect ratio does not change its composition, and respect reduced-motion preferences rather than adding touch-only animation loops.
+- Issue and redeem one-time account vouchers transactionally in the database; browser totals are previews only, so concurrent orders cannot reuse a discount.
