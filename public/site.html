@@ -145,6 +145,7 @@ footer{padding:16px 24px;display:flex;justify-content:space-between;font-family:
 .cbtn{display:block;width:100%;text-align:center;background:var(--lime);color:#111;border:0;border-radius:99px;padding:16px 22px;font:700 16px var(--sans);cursor:pointer;transition:transform .2s}.cbtn:hover{transform:translateY(-2px)}
 .cbtn[disabled]{opacity:.35;cursor:not-allowed;transform:none}.cbtn.ghost{background:none;color:inherit;border:1px solid rgba(255,255,255,.4)}
 .total{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.total strong{font-size:24px;letter-spacing:-.04em}
+.order-totals{display:grid;gap:6px}.order-totals .total{font-family:var(--mono);font-size:11px}.order-totals .total strong{font-family:var(--sans);font-size:19px;letter-spacing:0}.order-totals .discount{color:var(--lime)}.order-totals .final{border-top:1px solid rgba(255,255,255,.18);padding-top:8px}.order-totals .final strong{font-size:24px}
 .empty2{text-align:center;padding:50px 10px;opacity:.8;line-height:1.5}
 .ords{margin-top:26px}.ords h3{font:500 11px var(--mono);letter-spacing:.06em;opacity:.65;margin:0 0 10px}
 .ords details{border:1px solid rgba(255,255,255,.2);border-radius:14px;margin-bottom:8px;padding:0}.ords details:last-child{border-bottom:1px solid rgba(255,255,255,.2)}
@@ -584,6 +585,7 @@ requestAnimationFrame(f);
 </div>
 <div class="toast" id="toast" role="status"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="/voucher-pricing.js"></script>
 <script>
 (function(){
 const SUPPORT='tanchinhuquy@gmail.com',DAYS=7;
@@ -630,20 +632,20 @@ const SEED=[
 /* ---------- data layer (Lovable Cloud) ---------- */
 const authMem={},authStore={getItem:k=>{try{const v=localStorage.getItem(k);if(v!=null)return v}catch(e){}return k in authMem?authMem[k]:null},setItem:(k,v)=>{authMem[k]=v;try{localStorage.setItem(k,v)}catch(e){}},removeItem:k=>{delete authMem[k];try{localStorage.removeItem(k)}catch(e){}}};
 const SB=window.supabase.createClient('https://dyktdzbfsubkussnavfa.supabase.co','sb_publishable_0IJDhGCZBn0-wPvonpN6Jw_biO9rvW5',{auth:{storage:authStore,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-let demos=SEED.map(x=>({...x,tags:[...x.tags],support:[...x.support]})),allOrders=[],users={},session=null,uid=null,isAdmin=false,synced=false;
+let demos=SEED.map(x=>({...x,tags:[...x.tags],support:[...x.support]})),allOrders=[],users={},session=null,uid=null,isAdmin=false,synced=false,myVoucher=null;
 function reload(){}
-const toOrder=r=>({id:r.id,at:new Date(r.created_at).getTime(),due:new Date(r.due_at).getTime(),status:r.status,name:r.name,account:r.account,fb:r.fb,items:r.items||[],total:Number(r.total)});
+const toOrder=r=>({id:r.id,at:new Date(r.created_at).getTime(),due:new Date(r.due_at).getTime(),status:r.status,name:r.name,account:r.account,fb:r.fb,items:r.items||[],subtotal:r.subtotal==null?Number(r.total):Number(r.subtotal),discount:Number(r.discount_amount||0),voucherCode:r.voucher_code||null,total:Number(r.total)});
 async function sync(){
   try{
     const {data:{session:ss}}=await SB.auth.getSession();
-    session=ss?ss.user.email.toLowerCase():null;uid=ss?ss.user.id:null;isAdmin=false;users={};allOrders=[];
+    session=ss?ss.user.email.toLowerCase():null;uid=ss?ss.user.id:null;isAdmin=false;users={};allOrders=[];myVoucher=null;
     const dr=await SB.from('demos').select('*').order('sort',{ascending:true}).order('created_at',{ascending:false});
     if(!dr.error&&dr.data)demos=dr.data.map(d=>({code:d.code,name:d.name,service:d.service,tags:d.tags||[],visual:d.visual,url:d.url||'',support:d.support||[],status:d.status}));
     if(uid){
-      const [pr,rr,or]=await Promise.all([SB.from('profiles').select('*'),SB.rpc('has_role',{_user_id:uid,_role:'admin'}),SB.from('orders').select('*').order('created_at',{ascending:false})]);
+      const [pr,rr,or,vr]=await Promise.all([SB.from('profiles').select('*'),SB.rpc('has_role',{_user_id:uid,_role:'admin'}),SB.from('orders').select('*').order('created_at',{ascending:false}),SB.from('vouchers').select('code,discount_percent,used_at,used_order_id').eq('user_id',uid).maybeSingle()]);
       (pr.data||[]).forEach(u=>users[u.email]={name:u.name,fb:u.fb,approved:true,createdAt:u.created_at});
       if(!users[session])users[session]={name:(ss.user.user_metadata||{}).name||'',fb:(ss.user.user_metadata||{}).fb||'',approved:true};
-      isAdmin=rr.data===true;allOrders=(or.data||[]).map(toOrder);
+      isAdmin=rr.data===true;allOrders=(or.data||[]).map(toOrder);myVoucher=vr.error?null:vr.data;
     }
   }catch(e){console.error(e)}
   synced=true;
@@ -743,7 +745,22 @@ function itemView(it,idx){
     fb.w,em.w,pr.w,h('label',{class:'fld'},h('span',{text:'YÊU CẦU THÊM'}),nt));
 }
 const total=()=>cart.reduce((a,i)=>a+(Number(i.price)||0),0);
-function updTotal(){const t=$('#totalV');if(t)t.textContent=money(total())}
+const voucherAvailable=()=>window.CQVoucherPricing.available(myVoucher);
+const orderQuote=()=>window.CQVoucherPricing.quote(total(),voucherAvailable());
+function updTotal(){const q=orderQuote(),s=$('#subtotalV'),d=$('#discountV'),t=$('#totalV');if(s)s.textContent=money(q.subtotal);if(d)d.textContent='−'+money(q.discount);if(t)t.textContent=money(q.total)}
+function voucherNotice(){
+  if(!myVoucher)return null;
+  const active=voucherAvailable();
+  return h('div',{class:'notice voucher-note'},h('b',{text:active?'VOUCHER TẶNG · GIẢM 5%':'VOUCHER ĐÃ SỬ DỤNG'}),h('div',{class:'mono',text:myVoucher.code}),h('div',{text:active?'Tự động áp dụng cho một đơn hàng.':'Voucher chỉ dùng cho một đơn hàng.'}),!active&&myVoucher.used_order_id?h('div',{class:'hint',text:'Đã áp dụng cho đơn '+myVoucher.used_order_id}):null);
+}
+function orderTotals(){
+  const q=orderQuote();
+  return h('div',{class:'order-totals'},
+    h('div',{class:'total'},h('span',{class:'mono',text:'TẠM TÍNH'}),h('strong',{id:'subtotalV',text:money(q.subtotal)})),
+    voucherAvailable()?h('div',{class:'total discount'},h('span',{class:'mono',text:'VOUCHER 5%'}),h('strong',{id:'discountV',text:'−'+money(q.discount)})):null,
+    h('div',{class:'total final'},h('span',{class:'mono',text:'TỔNG SAU ƯU ĐÃI'}),h('strong',{id:'totalV',text:money(q.total)}))
+  );
+}
 function validate(){
   let first=null;
   ui.forEach(u=>{
@@ -759,17 +776,20 @@ function validate(){
 function orderText(o){
   const L=['ĐƠN ĐẶT DEMO '+o.id,'Ngày tạo: '+fdate(o.at),'Chí Quy phản hồi dự kiến trước: '+fdate(o.due),'Phương thức thanh toán: chuyển khoản','','Thành viên: '+o.name+' <'+o.account+'>',''];
   o.items.forEach((i,n)=>{L.push((n+1)+'. '+i.code+' — '+i.name,'   Link Facebook: '+i.fb,'   Email liên hệ: '+i.email,'   Mức giá đưa ra: '+money(i.price));if(i.note)L.push('   Yêu cầu thêm: '+i.note);L.push('')});
-  L.push('Tổng giá đề xuất: '+money(o.total));return L.join('\n');
+  if(o.voucherCode)L.push('Tạm tính: '+money(o.subtotal),'Voucher '+o.voucherCode+' — giảm 5%: −'+money(o.discount),'Tổng sau ưu đãi: '+money(o.total));
+  else L.push('Tổng giá đề xuất: '+money(o.total));
+  return L.join('\n');
 }
 async function submitOrder(){
   if(!cart.length)return;reload();
   const gone=cart.filter(i=>{const d=demoOf(i.code);return !d||d.status==='slotout'});
   if(gone.length){cart=cart.filter(i=>!gone.includes(i));saveCart();render();toast('Đã bỏ khỏi giỏ demo SLOT OUT: '+gone.map(i=>i.code).join(', '));return}
   if(!validate()){toast('Vui lòng điền đủ thông tin cho từng demo');return}
-  const at=Date.now(),D=new Date(at);
-  const o={id:'CQ-'+String(D.getFullYear()).slice(2)+pad(D.getMonth()+1)+pad(D.getDate())+'-'+Math.random().toString(36).slice(2,6).toUpperCase(),at,due:at+DAYS*864e5,status:'received',name:me().name||session,account:session,fb:me().fb||'',items:cart.map(i=>({...i,price:Number(i.price)})),total:total()};
-  const {error}=await SB.from('orders').insert({id:o.id,user_id:uid,account:o.account,name:o.name,fb:o.fb,items:o.items,total:o.total,status:'received',created_at:new Date(o.at).toISOString(),due_at:new Date(o.due).toISOString()});
-  if(error){toast('Gửi đơn chưa thành công, vui lòng thử lại');console.error(error);return}
+  const at=Date.now(),D=new Date(at),id='CQ-'+String(D.getFullYear()).slice(2)+pad(D.getMonth()+1)+pad(D.getDate())+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+  const {data:saved,error}=await SB.from('orders').insert({id,user_id:uid,account:session,name:me().name||session,fb:me().fb||'',items:cart.map(i=>({...i,price:Number(i.price)})),total:total(),status:'received',created_at:new Date(at).toISOString(),due_at:new Date(at+DAYS*864e5).toISOString()}).select('*').single();
+  if(error||!saved){toast('Gửi đơn chưa thành công, vui lòng thử lại');console.error(error);return}
+  const o=toOrder(saved);
+  if(o.voucherCode&&myVoucher)myVoucher={...myVoucher,used_at:new Date(o.at).toISOString(),used_order_id:o.id};
   allOrders.unshift(o);cart=[];saveCart();lastOrder=o;view='done';render();
 }
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const a=h('textarea');a.value=t;document.body.append(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}a.remove();return ok}}
@@ -795,15 +815,16 @@ function render(){
   const os=myOrders();
   if(os.length)body.append(h('div',{class:'ords top'},h('h3',{text:'ĐƠN GẦN NHẤT · '+os[0].id}),stBadge(os[0])));
   body.append(h('div',{class:'notice'},'Điền đủ thông tin cho từng demo trước khi gửi đặt hàng. Chí Quy phản hồi trong ',h('b',{text:'7 ngày'}),'. Mọi mức giá ghi nhận giao dịch bằng ',h('b',{text:'chuyển khoản'}),'. Mức giá chỉ là đề xuất; Chí Quy có quyền chấp thuận hoặc từ chối. Xem ',h('a',{class:'link',href:'#/demo',text:'Quy định đặt mua Demo'}),' · ',h('a',{class:'link',href:'#/policy',text:'Quy định chung'}),'.'));
+  const voucherInfo=voucherNotice();if(voucherInfo)body.append(voucherInfo);
   if(!cart.length)body.append(h('div',{class:'empty2'},h('p',{text:'Giỏ hàng đang trống. Chọn demo ở phần Samples và bấm “+ ĐẶT DEMO”.'}),h('button',{type:'button',class:'cbtn ghost',text:'XEM SAMPLES',onclick:()=>{closeAll();go('#/samples')}})));
   else cart.forEach((it,i)=>body.append(itemView(it,i)));
   if(os.length){
     const box=h('div',{class:'ords'},h('h3',{text:'LỊCH SỬ ĐƠN ('+os.length+')'}));
     os.forEach(o=>box.append(h('details',{},h('summary',{text:o.id+' · '+fdate(o.at)+' · '+o.items.length+' demo · '+money(o.total)}),
-      h('div',{class:'od'},stBadge(o),h('div',{text:'Phản hồi dự kiến trước '+fdate(o.due)}),h('div',{text:o.items.map(i=>i.code+' ('+money(i.price)+')').join(', ')}),h('a',{class:'link',href:mailLink(o),text:'Gửi email đơn này ↗'})))));
+      h('div',{class:'od'},stBadge(o),h('div',{text:'Phản hồi dự kiến trước '+fdate(o.due)}),o.voucherCode?h('div',{text:'Tạm tính '+money(o.subtotal)+' · Voucher '+o.voucherCode+' giảm '+money(o.discount)+' · Sau giảm '+money(o.total)}):null,h('div',{text:o.items.map(i=>i.code+' ('+money(i.price)+')').join(', ')}),h('a',{class:'link',href:mailLink(o),text:'Gửi email đơn này ↗'})))));
     body.append(box);
   }
-  foot.append(h('div',{class:'total'},h('span',{class:'mono',text:'TỔNG GIÁ ĐỀ XUẤT'}),h('strong',{id:'totalV',text:money(total())})),
+  foot.append(orderTotals(),
     h('button',{type:'button',class:'cbtn',text:'GỬI ĐẶT HÀNG ('+cart.length+' DEMO)',disabled:cart.length?null:'',onclick:submitOrder}));
 }
 
@@ -1831,7 +1852,7 @@ function adminOrders(){
     const u=users[o.account]||{};
     w.append(h('div',{class:'item ord'},
       h('div',{class:'ih'},h('div',{},h('div',{class:'c',text:o.id+' · '+fdate(o.at)}),h('div',{class:'n',text:o.name})),h('div',{class:'tot',text:money(o.total)})),
-      h('div',{class:'mono kv'},h('div',{text:'Tài khoản: '+o.account+(u.approved?' · đã duyệt tự động':'')}),h('div',{},'Facebook: ',fbOK(o.fb||'')?h('a',{class:'link',href:o.fb,target:'_blank',rel:'noopener noreferrer',text:o.fb}):(o.fb||'—')),h('div',{text:'Phản hồi trước: '+fdate(o.due)})),
+      h('div',{class:'mono kv'},h('div',{text:'Tài khoản: '+o.account+(u.approved?' · đã duyệt tự động':'')}),o.voucherCode?h('div',{text:'Tạm tính: '+money(o.subtotal)+' · Voucher '+o.voucherCode+': −'+money(o.discount)}):null,h('div',{text:'Tổng sau ưu đãi: '+money(o.total)}),h('div',{},'Facebook: ',fbOK(o.fb||'')?h('a',{class:'link',href:o.fb,target:'_blank',rel:'noopener noreferrer',text:o.fb}):(o.fb||'—')),h('div',{text:'Phản hồi trước: '+fdate(o.due)})),
       h('div',{class:'olist'},...o.items.map(i=>h('div',{class:'oi'},h('b',{text:i.code+' — '+i.name}),h('span',{class:'mono',text:'Giá đề xuất: '+money(i.price)}),
         h('span',{class:'mono',text:'FB: '+i.fb+' · Email: '+i.email}),i.note?h('span',{class:'mono',text:'Yêu cầu: '+i.note}):null))),
       h('label',{class:'fld'},h('span',{text:'TRẠNG THÁI XỬ LÝ'}),sel)));

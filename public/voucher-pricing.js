@@ -1,4 +1,8 @@
 (function (root) {
+  function available(voucher) {
+    return Boolean(voucher && !voucher.used_at);
+  }
+
   function quote(subtotal, eligible) {
     const amount = Number(subtotal);
     const safeSubtotal = Number.isFinite(amount) ? Math.max(0, amount) : 0;
@@ -10,5 +14,5 @@
     };
   }
 
-  root.CQVoucherPricing = Object.freeze({ quote });
+  root.CQVoucherPricing = Object.freeze({ available, quote });
 })(globalThis);
